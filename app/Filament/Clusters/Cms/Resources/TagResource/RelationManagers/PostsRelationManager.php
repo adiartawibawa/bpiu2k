@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class PostsRelationManager extends RelationManager
 {
-    protected static string $relationship = 'post';
+    protected static string $relationship = 'posts';
 
     public function table(Table $table): Table
     {
