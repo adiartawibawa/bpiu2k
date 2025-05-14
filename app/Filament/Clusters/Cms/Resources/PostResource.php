@@ -2,12 +2,14 @@
 
 namespace App\Filament\Clusters\Cms\Resources;
 
+use App\Exports\PostsExport;
 use App\Filament\Clusters\Cms;
 use App\Filament\Clusters\Cms\Resources\PostResource\Pages;
 use App\Filament\Clusters\Cms\Resources\PostResource\RelationManagers;
 use App\Filament\Clusters\Cms\Resources\PostResource\RelationManagers\ActivitiesRelationManager;
 use App\Filament\Clusters\Cms\Resources\PostResource\RelationManagers\MediaRelationManager;
 use App\Filament\Clusters\Cms\Resources\PostResource\RelationManagers\TagsRelationManager;
+use App\Imports\PostsImport;
 use App\Models\Post;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -17,6 +19,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Str;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PostResource extends Resource
 {
