@@ -28,13 +28,7 @@ class ContentRevisionResource extends Resource
     {
         return $form
             ->schema([
-                Tables\Columns\TextColumn::make('subject_type')
-                    ->label('Content Type')
-                    ->formatStateUsing(fn($state) => class_basename($state)),
-                Tables\Columns\TextColumn::make('description'),
-                Tables\Columns\TextColumn::make('causer.name'),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime(),
+                //
             ]);
     }
 
@@ -42,7 +36,13 @@ class ContentRevisionResource extends Resource
     {
         return $table
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('subject_type')
+                    ->label('Content Type')
+                    ->formatStateUsing(fn($state) => class_basename($state)),
+                Tables\Columns\TextColumn::make('description'),
+                Tables\Columns\TextColumn::make('causer.name'),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('subject_type')
@@ -53,6 +53,7 @@ class ContentRevisionResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
+                    ->modalHeading('Detail Revisi')
                     ->modalContent(fn($record) => view('filament.clusters.cms.resources.revisions.content-revisions', [
                         'record' => $record,
                     ])),
