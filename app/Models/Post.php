@@ -8,10 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Post extends Model
+class Post extends Model implements HasMedia
 {
-    use HasFactory, HasUuids, SoftDeletes, LogsActivity;
+    use HasFactory, HasUuids, SoftDeletes, LogsActivity, InteractsWithMedia;
 
     protected $fillable = [
         'title',
@@ -86,22 +88,31 @@ class Post extends Model
         return $this->belongsToMany(Tag::class);
     }
 
-    public function media()
+    public function registerMediaCollections(): void
     {
-        return $this->morphMany(Media::class, 'model');
+        $this->addMediaCollection('featured')
+            ->singleFile()
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp']);
+
+        $this->addMediaCollection('gallery');
     }
 
-    public function featuredImage()
-    {
-        return $this->morphOne(Media::class, 'model')
-            ->where('collection_name', 'featured');
-    }
+    // public function media()
+    // {
+    //     return $this->morphMany(Media::class, 'model');
+    // }
 
-    public function gallery()
-    {
-        return $this->morphMany(Media::class, 'model')
-            ->where('collection_name', 'gallery');
-    }
+    // public function featuredImage()
+    // {
+    //     return $this->morphOne(Media::class, 'model')
+    //         ->where('collection_name', 'featured');
+    // }
+
+    // public function gallery()
+    // {
+    //     return $this->morphMany(Media::class, 'model')
+    //         ->where('collection_name', 'gallery');
+    // }
 
     // Helper methods
     public function isPublished(): bool

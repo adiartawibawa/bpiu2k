@@ -12,9 +12,11 @@ use App\Filament\Clusters\Cms\Resources\PostResource\RelationManagers\TagsRelati
 use App\Imports\PostsImport;
 use App\Models\Post;
 use Filament\Forms;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -118,13 +120,29 @@ class PostResource extends Resource
                             ->maxLength(160),
                     ]),
 
-                // Forms\Components\Section::make('Featured Image')
-                //     ->schema([
-                //         Forms\Components\FileUpload::make('featured_image')
-                //             ->image()
-                //             ->directory('posts/featured-images')
-                //             ->imageEditor(),
-                //     ]),
+                SpatieMediaLibraryFileUpload::make('featured')
+                    ->label('Featured Image')
+                    ->collection('featured')
+                    ->image()
+                    ->imageEditor()
+                    ->imageResizeMode('cover')
+                    ->imageCropAspectRatio('16:9')
+                    ->imageEditorAspectRatios([
+                        '16:9',
+                        '4:3',
+                        '1:1',
+                    ])
+                    ->responsiveImages()
+                    ->conversion('thumb')
+                    ->columnSpanFull(),
+
+                // SpatieMediaLibraryFileUpload::make('gallery')
+                //     ->label('Gallery Images')
+                //     ->collection('gallery')
+                //     ->multiple()
+                //     ->image()
+                //     ->maxFiles(10)
+                //     ->reorderable(),
 
                 Forms\Components\Actions::make([
                     Forms\Components\Actions\Action::make('preview')
@@ -140,8 +158,10 @@ class PostResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\ImageColumn::make('featured_image')
-                    ->label('Image'),
+                SpatieMediaLibraryImageColumn::make('featured')
+                    ->label('Featured Image')
+                    ->collection('featured')
+                    ->conversion('thumb'),
                 Tables\Columns\TextColumn::make('title')
                     ->searchable()
                     ->limit(50),
