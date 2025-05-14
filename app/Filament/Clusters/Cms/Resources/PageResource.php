@@ -93,6 +93,14 @@ class PageResource extends Resource
                             ->directory('pages/featured-images')
                             ->imageEditor(),
                     ]),
+
+                Forms\Components\Actions::make([
+                    Forms\Components\Actions\Action::make('preview')
+                        ->icon('heroicon-o-eye')
+                        ->url(fn($record) => route('pages.preview', $record))
+                        ->hidden(fn($record) => !$record?->exists)
+                        ->openUrlInNewTab(),
+                ])->columnSpanFull(),
             ]);
     }
 
@@ -156,6 +164,13 @@ class PageResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->label('Preview')
+                    ->color('gray')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn(Page $record): string => route('pages.preview', $record))
+                    ->hidden(fn(Page $record): bool => $record->status === 'archived')
+                    ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])

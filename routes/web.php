@@ -19,11 +19,11 @@ Route::get('/preview/posts/{post}', function (Post $post) {
 })->name('posts.preview');
 
 Route::get('/preview/pages/{page}', function (Page $page) {
-    abort_unless(
-        auth()->user() && $page->canBePreviewed(),
-        403,
-        'Preview tidak tersedia'
-    );
+    // abort_unless(
+    //     auth()->user() && $page->canBePreviewed(),
+    //     403,
+    //     'Preview tidak tersedia'
+    // );
 
     return view('preview.page', ['model' => $page]);
 })->name('pages.preview');
