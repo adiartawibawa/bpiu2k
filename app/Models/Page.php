@@ -19,6 +19,7 @@ class Page extends Model
         'content',
         'status',
         'published_at',
+        'scheduled_at',
         'author_id',
         'meta_title',
         'meta_description',
@@ -26,9 +27,18 @@ class Page extends Model
         'order'
     ];
 
-    protected $casts = [
-        'published_at' => 'datetime'
-    ];
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'published_at' => 'datetime',
+            'scheduled_at' => 'datetime',
+        ];
+    }
 
     // Scope untuk status
     public function scopePublished($query)
@@ -74,6 +84,12 @@ class Page extends Model
     public function getLayoutName(): string
     {
         return $this->layout ?? 'default';
+    }
+
+    public function scopeScheduled($query)
+    {
+        return $query->where('status', 'draft')
+            ->whereNotNull('scheduled_at');
     }
 
     public function getActivitylogOptions(): LogOptions

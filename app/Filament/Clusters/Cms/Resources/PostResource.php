@@ -90,8 +90,18 @@ class PostResource extends Resource
                             ])
                             ->required()
                             ->default('draft'),
+
                         Forms\Components\DateTimePicker::make('published_at')
                             ->hidden(fn(Forms\Get $get) => $get('status') !== 'published'),
+
+                        Forms\Components\DateTimePicker::make('scheduled_at')
+                            ->label('Schedule Publish')
+                            ->native(false)
+                            ->minDate(now())
+                            ->displayFormat('d M Y H:i')
+                            ->hidden(fn($get) => $get('status') !== 'draft')
+                            ->helperText('Content will be automatically published at the specified time.'),
+
                         Forms\Components\Toggle::make('is_featured')
                             ->label('Featured Post'),
                     ])
@@ -147,6 +157,24 @@ class PostResource extends Resource
                 Tables\Columns\TextColumn::make('author.name')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('scheduled_at')
+                    ->label('Scheduled At')
+                    ->dateTime('d M Y H:i')
+                    ->sortable()
+                    ->color(fn($record) => $record->scheduled_at && $record->scheduled_at <= now() ? 'danger' : 'gray')
+                    ->description(fn($record) => $record->scheduled_at && $record->scheduled_at <= now()
+                        ? 'Past the schedule'
+                        : null),
+                Tables\Columns\TextColumn::make('scheduled_at')
+                    ->description(fn($record) => $record->scheduled_at && $record->scheduled_at <= now()
+                        ? '⚠️ Jadwal telah lewat - periksa kembali'
+                        : null),
+                Tables\Columns\IconColumn::make('is_scheduled')
+                    ->label('')
+                    ->icon(fn($record) => $record->scheduled_at ? 'heroicon-o-clock' : null)
+                    ->tooltip(fn($record) => $record->scheduled_at
+                        ? 'Will be published on ' . $record->scheduled_at->format('d M Y H:i')
+                        : null),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -167,6 +195,9 @@ class PostResource extends Resource
                         'published' => 'Published',
                         'archived' => 'Archived',
                     ]),
+                Tables\Filters\Filter::make('scheduled')
+                    ->label('Scheduled Content')
+                    ->query(fn($query) => $query->scheduled()),
                 Tables\Filters\TernaryFilter::make('is_featured')
                     ->label('Featured'),
                 Tables\Filters\Filter::make('published_at')
@@ -189,6 +220,17 @@ class PostResource extends Resource
                     ->url(fn(Post $record): string => route('posts.preview', $record))
                     ->hidden(fn(Post $record): bool => $record->status === 'archived')
                     ->openUrlInNewTab(),
+                Tables\Actions\Action::make('publish_now')
+                    ->label('Publikasikan Sekarang')
+                    ->icon('heroicon-o-check-circle')
+                    ->action(function ($record) {
+                        $record->update([
+                            'status' => 'published',
+                            'published_at' => now(),
+                            'scheduled_at' => null,
+                        ]);
+                    })
+                    ->visible(fn($record) => $record->status === 'draft' && $record->scheduled_at),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])

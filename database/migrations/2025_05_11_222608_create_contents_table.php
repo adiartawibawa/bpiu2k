@@ -38,6 +38,7 @@ return new class extends Migration
             $table->longText('content');
             $table->enum('status', ['draft', 'published', 'archived'])->default('draft');
             $table->dateTime('published_at')->nullable();
+            $table->timestamp('scheduled_at')->nullable();
             $table->foreignUuid('author_id')->constrained('users')->onDelete('cascade');
             $table->foreignUuid('category_id')->nullable()->constrained()->onDelete('set null');
             $table->string('meta_title')->nullable();
@@ -60,6 +61,7 @@ return new class extends Migration
             $table->longText('content');
             $table->enum('status', ['draft', 'published'])->default('draft');
             $table->dateTime('published_at')->nullable();
+            $table->timestamp('scheduled_at')->nullable();
             $table->foreignUuid('author_id')->constrained('users')->onDelete('cascade');
             $table->string('meta_title')->nullable();
             $table->text('meta_description')->nullable();

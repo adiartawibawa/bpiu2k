@@ -20,6 +20,7 @@ class Post extends Model
         'content',
         'status',
         'published_at',
+        'scheduled_at',
         'author_id',
         'category_id',
         'meta_title',
@@ -27,10 +28,19 @@ class Post extends Model
         'is_featured'
     ];
 
-    protected $casts = [
-        'published_at' => 'datetime',
-        'is_featured' => 'boolean'
-    ];
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'published_at' => 'datetime',
+            'scheduled_at' => 'datetime',
+            'is_featured' => 'boolean'
+        ];
+    }
 
     // Scope untuk status
     public function scopePublished($query)
@@ -103,6 +113,12 @@ class Post extends Model
     {
         $wordCount = str_word_count(strip_tags($this->content));
         return ceil($wordCount / 200); // Asumsi 200 kata per menit
+    }
+
+    public function scopeScheduled($query)
+    {
+        return $query->where('status', 'draft')
+            ->whereNotNull('scheduled_at');
     }
 
     public function getActivitylogOptions(): LogOptions
