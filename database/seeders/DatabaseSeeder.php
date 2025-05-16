@@ -21,7 +21,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function () {
-            $this->seedRolesAndPermissions();
+            // $this->seedRolesAndPermissions();
             $this->seedUsers();
             $this->seedContent();
             $this->seedMenus();
@@ -84,7 +84,7 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('password'),
             'status'   => 'active',
         ]);
-        $admin->roles()->sync([Role::where('name', 'admin')->first()->id]);
+        // $admin->roles()->sync([Role::where('name', 'admin')->first()->id]);
 
         // Create editor user
         $editor = User::firstOrCreate(['email' => 'editor@example.com'], [
@@ -92,16 +92,17 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('password'),
             'status'   => 'active',
         ]);
-        $editor->roles()->sync([Role::where('name', 'editor')->first()->id]);
+        // $editor->roles()->sync([Role::where('name', 'editor')->first()->id]);
 
         // Create regular users
-        User::factory(10)->create()->each(function ($user) {
-            $roles = Role::where('name', '!=', 'admin')
-                ->inRandomOrder()
-                ->limit(rand(1, 2))
-                ->pluck('id');
-            $user->roles()->sync($roles);
-        });
+        User::factory(10)->create();
+        // User::factory(10)->create()->each(function ($user) {
+        //     $roles = Role::where('name', '!=', 'admin')
+        //         ->inRandomOrder()
+        //         ->limit(rand(1, 2))
+        //         ->pluck('id');
+        //     $user->roles()->sync($roles);
+        // });
     }
 
     protected function seedContent(): void

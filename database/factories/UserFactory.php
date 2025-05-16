@@ -37,27 +37,6 @@ class UserFactory extends Factory
         ];
     }
 
-    public function configure()
-    {
-        return $this->afterCreating(function (User $user) {
-            // Create avatar media for some users (70% chance)
-            if (fake()->boolean(70)) {
-                $user->media()->create([
-                    'name' => 'avatar-' . $user->id,
-                    'file_name' => 'avatar.jpg',
-                    'mime_type' => 'image/jpeg',
-                    'path' => 'avatars/' . $user->id . '.jpg',
-                    'disk' => 'public',
-                    'size' => fake()->numberBetween(100, 2000),
-                    'user_id' => $user->id,
-                    'collection_name' => 'avatar',
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-        });
-    }
-
     /**
      * Indicate that the model's email address should be unverified.
      */

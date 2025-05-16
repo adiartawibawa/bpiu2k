@@ -3,25 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Spatie\Permission\Models\Role as ModelsRole;
 
-class Role extends Model
+class Role extends ModelsRole
 {
-    use HasUuids, HasFactory;
-
-    protected $fillable = [
-        'name',
-        'description'
-    ];
-
-    public function users()
-    {
-        return $this->belongsToMany(User::class);
-    }
-
-    public function permissions()
-    {
-        return $this->belongsToMany(Permission::class);
-    }
+    use HasUuids;
 }

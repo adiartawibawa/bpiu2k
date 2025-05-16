@@ -2,18 +2,21 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail, HasMedia
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasUuids, SoftDeletes;
+    use HasRoles, InteractsWithMedia;
 
     /**
      * The attributes that are mass assignable.
@@ -52,11 +55,6 @@ class User extends Authenticatable
         ];
     }
 
-    public function roles()
-    {
-        return $this->belongsToMany(Role::class);
-    }
-
     public function posts()
     {
         return $this->hasMany(Post::class, 'author_id');
@@ -65,16 +63,5 @@ class User extends Authenticatable
     public function pages()
     {
         return $this->hasMany(Page::class, 'author_id');
-    }
-
-    public function media()
-    {
-        return $this->morphMany(Media::class, 'model');
-    }
-
-    public function avatar()
-    {
-        return $this->morphOne(Media::class, 'model')
-            ->where('collection_name', 'avatar');
     }
 }
