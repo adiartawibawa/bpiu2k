@@ -12,6 +12,8 @@ class Cms extends Cluster
 
     protected static ?int $navigationSort = 99;
 
+    protected static ?string $navigationGroup = 'Manajemen Konten';
+
     public static function getNavigationLabel(): string
     {
         return __('Contents');
