@@ -12,6 +12,8 @@ class Settings extends Cluster
 
     protected static ?int $navigationSort = 100;
 
+    protected static ?string $navigationGroup = 'Manajemen Aplikasi';
+
     public static function getNavigationLabel(): string
     {
         return __('Settings');
