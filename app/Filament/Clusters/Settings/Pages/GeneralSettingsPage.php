@@ -3,7 +3,7 @@
 namespace App\Filament\Clusters\Settings\Pages;
 
 use App\Filament\Clusters\Settings;
-use App\Models\Setting;
+use App\Settings\GeneralSettings;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
@@ -15,7 +15,6 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class GeneralSettingsPage extends Page implements HasForms, HasActions
@@ -36,13 +35,17 @@ class GeneralSettingsPage extends Page implements HasForms, HasActions
 
     public ?array $data = [];
 
+    protected ?GeneralSettings $settings = null;
+
     public function mount(): void
     {
+        $this->settings = app(GeneralSettings::class);
+
         $this->form->fill([
-            'site_name' => Setting::get('site_name', config('app.name')),
-            'site_description' => Setting::get('site_description'),
-            'timezone' => Setting::get('timezone', config('app.timezone')),
-            'maintenance_mode' => (bool) Setting::get('maintenance_mode', false),
+            'site_name' => $this->settings->site_name,
+            'site_description' => $this->settings->site_description,
+            'timezone' => $this->settings->timezone,
+            'maintenance_mode' => $this->settings->maintenance_mode,
         ]);
     }
 
@@ -73,8 +76,7 @@ class GeneralSettingsPage extends Page implements HasForms, HasActions
                             ->helperText('When enabled, only administrators can access the site'),
                     ]),
             ])
-            ->statePath('data')
-            ->model(Setting::class);
+            ->statePath('data');
     }
 
     protected function getHeaderActions(): array
@@ -83,7 +85,8 @@ class GeneralSettingsPage extends Page implements HasForms, HasActions
             Action::make('save')
                 ->label('Save Settings')
                 ->action('save')
-                ->color('primary')->icon('heroicon-o-check-circle'),
+                ->color('primary')
+                ->icon('heroicon-o-check-circle'),
 
             Action::make('reset')
                 ->label('Reset Default')
@@ -91,7 +94,7 @@ class GeneralSettingsPage extends Page implements HasForms, HasActions
                 ->icon('heroicon-o-arrow-path')
                 ->action('resetSettings')
                 ->requiresConfirmation()
-                ->modalDescription('Yakin ingin mengembalikan ke pengaturan default?'),
+                ->modalDescription('Are you sure you want to reset to default settings?'),
         ];
     }
 
@@ -101,18 +104,18 @@ class GeneralSettingsPage extends Page implements HasForms, HasActions
             $data = $this->form->getState();
 
             DB::transaction(function () use ($data) {
-                foreach ($data as $key => $value) {
-                    Setting::set($key, $value, static::$cluster);
-                }
+                $settings = $this->settings ?? app(GeneralSettings::class);
+                $settings->fill($data);
+                $settings->save();
             });
 
             Notification::make()
-                ->title('Pengaturan berhasil disimpan')
+                ->title('Settings saved successfully')
                 ->success()
                 ->send();
         } catch (\Exception $e) {
             Notification::make()
-                ->title('Gagal menyimpan pengaturan')
+                ->title('Failed to save settings')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();
@@ -122,37 +125,24 @@ class GeneralSettingsPage extends Page implements HasForms, HasActions
     public function resetSettings(): void
     {
         try {
-            $defaults = $this->getDefaultSettings();
-
-            DB::transaction(function () use ($defaults) {
-                foreach ($defaults as $key => $value) {
-                    Setting::set($key, $value, static::$cluster);
-                }
+            DB::transaction(function () {
+                $settings = $this->settings ?? app(GeneralSettings::class);
+                $defaults = (new GeneralSettings())->toArray();
+                $settings->fill($defaults);
+                $settings->save();
+                $this->form->fill($defaults);
             });
 
-            $this->form->fill($defaults);
-
             Notification::make()
-                ->title('Berhasil')
-                ->body('Pengaturan telah direset ke default')
+                ->title('Settings reset to default')
                 ->success()
                 ->send();
         } catch (\Exception $e) {
             Notification::make()
-                ->title('Error')
-                ->body('Gagal mereset pengaturan: ' . $e->getMessage())
+                ->title('Failed to reset settings')
+                ->body($e->getMessage())
                 ->danger()
                 ->send();
         }
-    }
-
-    protected function getDefaultSettings(): array
-    {
-        return [
-            'site_name' => config('app.name'),
-            'site_logo' => null,
-            'primary_color' => '#3b82f6',
-            // Tambahkan default values lainnya
-        ];
     }
 }

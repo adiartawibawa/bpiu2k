@@ -3,53 +3,35 @@
 namespace App\Filament\Clusters\Settings\Pages;
 
 use App\Filament\Clusters\Settings;
-use App\Models\Setting;
+use App\Settings\EmailSettings;
 use Filament\Actions\Action;
-use Filament\Actions\Concerns\InteractsWithActions;
-use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
-class EmailSettingsPage extends Page implements HasForms, HasActions
+class EmailSettingsPage extends Page implements HasForms
 {
-    use InteractsWithForms, InteractsWithActions;
+    use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-envelope';
-
     protected static string $view = 'filament.clusters.settings.pages.email-settings-page';
-
     protected static ?string $navigationLabel = 'Email Settings';
-
     protected static ?string $navigationGroup = 'System Configuration';
-
-    protected static ?int $navigationSort = 1;
-
     protected static ?string $cluster = Settings::class;
 
     public ?array $data = [];
 
     public function mount(): void
     {
-        $this->form->fill([
-            'mail_from_address' => Setting::get('mail_from_address', config('mail.from.address')),
-            'mail_from_name' => Setting::get('mail_from_name', config('mail.from.name')),
-            'mail_mailer' => Setting::get('mail_mailer', config('mail.default')),
-            'mail_host' => Setting::get('mail_host', config('mail.mailers.smtp.host')),
-            'mail_port' => Setting::get('mail_port', config('mail.mailers.smtp.port')),
-            'mail_username' => Setting::get('mail_username', config('mail.mailers.smtp.username')),
-            'mail_password' => Setting::get('mail_password'),
-            'mail_encryption' => Setting::get('mail_encryption', config('mail.mailers.smtp.encryption')),
-            'mail_test_address' => Setting::get('mail_test_address'),
-        ]);
+        $settings = app(EmailSettings::class);
+        $this->form->fill($settings->toArray());
     }
 
     public function form(Form $form): Form
@@ -58,20 +40,19 @@ class EmailSettingsPage extends Page implements HasForms, HasActions
             ->schema([
                 Section::make('Sender Information')
                     ->schema([
-                        TextInput::make('mail_from_address')
+                        TextInput::make('from_address')
                             ->email()
                             ->required()
-                            ->label('From Email Address'),
+                            ->maxLength(255),
 
-                        TextInput::make('mail_from_name')
+                        TextInput::make('from_name')
                             ->required()
-                            ->label('From Name'),
+                            ->maxLength(255),
                     ])->columns(2),
 
                 Section::make('Mail Configuration')
                     ->schema([
-                        Select::make('mail_mailer')
-                            ->label('Mail Driver')
+                        Select::make('mailer')
                             ->options([
                                 'smtp' => 'SMTP',
                                 'sendmail' => 'Sendmail',
@@ -82,40 +63,41 @@ class EmailSettingsPage extends Page implements HasForms, HasActions
                             ->required()
                             ->live(),
 
-                        TextInput::make('mail_host')
+                        TextInput::make('host')
                             ->label('SMTP Host')
-                            ->required(fn($get) => $get('mail_mailer') === 'smtp'),
+                            ->required(fn($get) => $get('mailer') === 'smtp')
+                            ->visible(fn($get) => $get('mailer') === 'smtp'),
 
-                        TextInput::make('mail_port')
+                        TextInput::make('port')
                             ->label('SMTP Port')
                             ->numeric()
-                            ->required(fn($get) => $get('mail_mailer') === 'smtp'),
+                            ->required(fn($get) => $get('mailer') === 'smtp')
+                            ->visible(fn($get) => $get('mailer') === 'smtp'),
 
-                        TextInput::make('mail_username')
-                            ->label('SMTP Username'),
+                        TextInput::make('username')
+                            ->label('SMTP Username')
+                            ->visible(fn($get) => $get('mailer') === 'smtp'),
 
-                        TextInput::make('mail_password')
+                        TextInput::make('password')
                             ->label('SMTP Password')
-                            ->password(),
+                            ->password()
+                            ->visible(fn($get) => $get('mailer') === 'smtp'),
 
-                        Select::make('mail_encryption')
+                        Select::make('encryption')
                             ->label('Encryption')
                             ->options([
                                 'tls' => 'TLS',
                                 'ssl' => 'SSL',
                                 '' => 'None',
-                            ]),
-                    ])->columns(2),
+                            ])
+                            ->visible(fn($get) => $get('mailer') === 'smtp'),
+                    ]),
 
-                Section::make('Test Email')
+                Section::make('Test Configuration')
                     ->schema([
-                        TextInput::make('mail_test_address')
+                        TextInput::make('test_address')
                             ->label('Test Email Address')
                             ->email(),
-
-                        Toggle::make('send_test_email')
-                            ->label('Send Test Email')
-                            ->hidden(),
                     ]),
             ])
             ->statePath('data');
@@ -127,22 +109,13 @@ class EmailSettingsPage extends Page implements HasForms, HasActions
             Action::make('save')
                 ->label('Save Settings')
                 ->action('save')
-                ->color('primary')->icon('heroicon-o-check-circle'),
+                ->color('primary'),
 
-            Action::make('reset')
-                ->label('Reset Default')
-                ->color('danger')
-                ->icon('heroicon-o-arrow-path')
-                ->action('resetSettings')
-                ->requiresConfirmation()
-                ->modalDescription('Yakin ingin mengembalikan ke pengaturan default?'),
-
-            Action::make('sendTestEmail')
+            Action::make('test')
                 ->label('Send Test Email')
                 ->color('gray')
-                ->icon('heroicon-o-envelope')
                 ->action('sendTestEmail')
-                ->hidden(fn() => empty($this->data['mail_test_address'])),
+                ->visible(fn() => !empty($this->data['test_address'] ?? null)),
         ];
     }
 
@@ -152,64 +125,64 @@ class EmailSettingsPage extends Page implements HasForms, HasActions
             $data = $this->form->getState();
 
             DB::transaction(function () use ($data) {
-                foreach ($data as $key => $value) {
-                    Setting::set($key, $value, static::$cluster);
-                }
+                /** @var EmailSettings $settings */
+                $settings = app(EmailSettings::class);
+                $settings->fill($data);
+                $settings->save();
+
+                // Apply runtime configuration
+                config(['mail' => $settings->toMailConfig()]);
             });
 
             Notification::make()
-                ->title('Pengaturan berhasil disimpan')
+                ->title('Email settings saved successfully')
                 ->success()
                 ->send();
         } catch (\Exception $e) {
             Notification::make()
-                ->title('Gagal menyimpan pengaturan')
+                ->title('Failed to save email settings')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();
+
+            logger()->error('Email settings save failed: ' . $e->getMessage(), [
+                'exception' => $e,
+                'settings_data' => $this->data
+            ]);
         }
-    }
-
-    public function resetSettings(): void
-    {
-        try {
-            $defaults = $this->getDefaultSettings();
-
-            DB::transaction(function () use ($defaults) {
-                foreach ($defaults as $key => $value) {
-                    Setting::set($key, $value, static::$cluster);
-                }
-            });
-
-            $this->form->fill($defaults);
-
-            Notification::make()
-                ->title('Berhasil')
-                ->body('Pengaturan telah direset ke default')
-                ->success()
-                ->send();
-        } catch (\Exception $e) {
-            Notification::make()
-                ->title('Error')
-                ->body('Gagal mereset pengaturan: ' . $e->getMessage())
-                ->danger()
-                ->send();
-        }
-    }
-
-    protected function getDefaultSettings(): array
-    {
-        return [
-            'site_name' => config('app.name'),
-            'site_logo' => null,
-            'primary_color' => '#3b82f6',
-            // Tambahkan default values lainnya
-        ];
     }
 
     public function sendTestEmail(): void
     {
-        // Implement your test email sending logic here
-        $this->notify('success', 'Test email sent successfully');
+        try {
+            $testAddress = $this->data['test_address'] ?? null;
+
+            if (empty($testAddress)) {
+                throw new \Exception('Test email address is required');
+            }
+
+            $mailer = $this->data['mailer'] ?? config('mail.default');
+
+            Mail::mailer($mailer)
+                ->to($testAddress)
+                ->send(new \App\Mail\TestEmail());
+
+            Notification::make()
+                ->title('Test email sent successfully')
+                ->body('Test email was sent to ' . $testAddress)
+                ->success()
+                ->send();
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Failed to send test email')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+
+            logger()->error('Test email failed: ' . $e->getMessage(), [
+                'exception' => $e,
+                'test_address' => $this->data['test_address'] ?? null
+            ]);
+        }
     }
 }

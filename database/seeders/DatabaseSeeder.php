@@ -6,74 +6,31 @@ use App\Models\Category;
 use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\Page;
-use App\Models\Permission;
 use App\Models\Post;
-use App\Models\Role;
 use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
         DB::transaction(function () {
-            // $this->seedRolesAndPermissions();
             $this->seedUsers();
             $this->seedContent();
             $this->seedMenus();
+
+            // Artisan::call('shield:generate --all');
+
+            // // Menjalankan command shield:super-admin
+            // Artisan::call('shield:super-admin', [
+            //     '--user' => 'Admin User',
+            //     '--panel' => 'admin'
+            // ]);
         });
-    }
-
-    protected function seedRolesAndPermissions(): void
-    {
-        // Create roles
-        $roles = [
-            'admin'       => Role::firstOrCreate(['name' => 'admin'], [
-                'description' => 'Administrator with full system access'
-            ]),
-            'editor'      => Role::firstOrCreate(['name' => 'editor'], [
-                'description' => 'Can create and edit content'
-            ]),
-            'author'      => Role::firstOrCreate(['name' => 'author'], [
-                'description' => 'Can create and manage own content'
-            ]),
-            'contributor' => Role::firstOrCreate(['name' => 'contributor'], [
-                'description' => 'Can submit content for review'
-            ]),
-            'subscriber'  => Role::firstOrCreate(['name' => 'subscriber'], [
-                'description' => 'Basic read-only access'
-            ]),
-        ];
-
-        // Create permissions
-        $permissions = [
-            'content.create'  => Permission::firstOrCreate(['name' => 'content.create'], ['description' => 'Create content']),
-            'content.read'    => Permission::firstOrCreate(['name' => 'content.read'], ['description' => 'View content']),
-            'content.update'  => Permission::firstOrCreate(['name' => 'content.update'], ['description' => 'Update content']),
-            'content.delete'  => Permission::firstOrCreate(['name' => 'content.delete'], ['description' => 'Delete content']),
-            'content.publish' => Permission::firstOrCreate(['name' => 'content.publish'], ['description' => 'Publish content']),
-            'media.upload'   => Permission::firstOrCreate(['name' => 'media.upload'], ['description' => 'Upload media']),
-        ];
-
-        // Assign permissions to roles
-        $roles['admin']->permissions()->sync($permissions);
-        $roles['editor']->permissions()->sync([
-            $permissions['content.create']->id,
-            $permissions['content.read']->id,
-            $permissions['content.update']->id,
-            $permissions['content.publish']->id,
-            $permissions['media.upload']->id,
-        ]);
-        $roles['author']->permissions()->sync([
-            $permissions['content.create']->id,
-            $permissions['content.read']->id,
-            $permissions['content.update']->id,
-            $permissions['media.upload']->id,
-        ]);
     }
 
     protected function seedUsers(): void

@@ -3,7 +3,7 @@
         {{ $this->form }}
     </x-filament-panels::form>
 
-    @if ($logo = $this->data['site_logo'] ?? null)
+    @if ($logo = $this->data['logo_path'] ?? null)
         <div
             class="p-4 mt-6 bg-white shadow-sm fi-section rounded-xl ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
             <h3 class="mb-4 text-lg font-medium fi-section-header-heading text-gray-950 dark:text-white">
@@ -13,11 +13,17 @@
                 <div>
                     <h4 class="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Logo</h4>
                     <div class="flex items-center gap-4">
-                        <img src="{{ asset('storage/' . $logo) }}" alt="Current Logo" class="object-contain h-16">
-                        <a href="{{ asset('storage/' . $logo) }}" target="_blank"
-                            class="text-sm font-medium text-primary-600 hover:text-primary-500 hover:underline dark:text-primary-500 dark:hover:text-primary-400">
-                            View Full Size
-                        </a>
+                        <img src="{{ $logo ? (filter_var($logo, FILTER_VALIDATE_URL) ? $logo : asset('storage/' . $logo)) : '' }}"
+                            alt="Current Logo" class="object-contain h-16" onerror="this.style.display='none'">
+                        @php
+                            $logoUrl = $this->settings->getLogoUrl();
+                        @endphp
+
+                        @if ($logoUrl)
+                            <img src="{{ $logoUrl }}" alt="Current Logo" class="object-contain h-16">
+                            <a href="{{ $logoUrl }}" target="_blank" class="text-primary-600 hover:underline">View
+                                Full Size</a>
+                        @endif
                     </div>
                 </div>
                 <div>
@@ -45,26 +51,25 @@
                 Alpine.data('colorPreview', () => ({
                     primaryColor: @js($this->data['primary_color'] ?? '#3b82f6'),
                     secondaryColor: @js($this->data['secondary_color'] ?? '#64748b'),
+                    darkMode: @js($this->data['dark_mode'] ?? false),
 
                     init() {
+                        // Update preview when colors change
                         this.$watch('primaryColor', (value) => {
                             if (value) {
-                                document.dispatchEvent(new CustomEvent('primary-color-updated', {
-                                    detail: {
-                                        color: value
-                                    }
-                                }));
+                                document.documentElement.style.setProperty('--primary', value);
                             }
                         });
 
                         this.$watch('secondaryColor', (value) => {
                             if (value) {
-                                document.dispatchEvent(new CustomEvent('secondary-color-updated', {
-                                    detail: {
-                                        color: value
-                                    }
-                                }));
+                                document.documentElement.style.setProperty('--secondary', value);
                             }
+                        });
+
+                        // Toggle dark mode preview
+                        this.$watch('darkMode', (value) => {
+                            document.documentElement.classList.toggle('dark', value);
                         });
                     }
                 }));
