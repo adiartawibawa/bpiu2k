@@ -10,7 +10,6 @@ use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Section;
-use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -38,11 +37,10 @@ class SiteAppearancePage extends Page implements HasForms, HasActions
 
     public ?array $data = [];
 
-    private SiteAppearance $settings;
-
-    public function mount(SiteAppearance $settings): void
+    public function mount(): void
     {
-        $this->settings = $settings;
+        $settings = app(SiteAppearance::class);
+
         $this->form->fill([
             'primary_color' => $settings->primary_color,
             'secondary_color' => $settings->secondary_color,
@@ -57,57 +55,50 @@ class SiteAppearancePage extends Page implements HasForms, HasActions
     {
         return $form
             ->schema([
-                Section::make('Branding')
-                    ->schema([
-                        SpatieMediaLibraryFileUpload::make('logo_path')
-                            ->label('Logo')
-                            ->collection('logo_path')
-                            ->directory('settings')
-                            ->image()
-                            ->maxSize(2048)
-                            ->imagePreviewHeight('100')
-                            ->downloadable()
-                            ->openable()
-                            ->panelAspectRatio('2:1'),
+                Section::make('Branding')->schema([
+                    FileUpload::make('logo_path')
+                        ->label('Logo')
+                        ->directory('settings')
+                        ->image()
+                        ->maxSize(2048)
+                        ->imagePreviewHeight('100')
+                        ->downloadable()
+                        ->openable()
+                        ->panelAspectRatio('2:1'),
 
-                        SpatieMediaLibraryFileUpload::make('favicon_path')
-                            ->label('Favicon')
-                            ->collection('favicon_path')
-                            ->directory('settings')
-                            ->image()
-                            ->maxSize(512)
-                            ->imagePreviewHeight('50')
-                            ->helperText('Recommended size: 32x32 or 64x64 pixels'),
-                    ])
-                    ->columns(2),
+                    FileUpload::make('favicon_path')
+                        ->label('Favicon')
+                        ->directory('settings')
+                        ->image()
+                        ->maxSize(512)
+                        ->imagePreviewHeight('50')
+                        ->helperText('Recommended size: 32x32 or 64x64 pixels'),
+                ])->columns(2),
 
-                Section::make('Colors')
-                    ->schema([
-                        ColorPicker::make('primary_color')
-                            ->label('Primary Color')
-                            ->rgb()
-                            ->live()
-                            ->helperText('Main brand color used throughout the site'),
+                Section::make('Colors')->schema([
+                    ColorPicker::make('primary_color')
+                        ->label('Primary Color')
+                        ->hex()
+                        ->live()
+                        ->helperText('Main brand color used throughout the site'),
 
-                        ColorPicker::make('secondary_color')
-                            ->label('Secondary Color')
-                            ->rgb()
-                            ->live()
-                            ->helperText('Accent color used for secondary elements'),
+                    ColorPicker::make('secondary_color')
+                        ->label('Secondary Color')
+                        ->hex()
+                        ->live()
+                        ->helperText('Accent color used for secondary elements'),
 
-                        Toggle::make('dark_mode')
-                            ->label('Enable Dark Mode')
-                            ->live(),
-                    ])
-                    ->columns(2),
+                    Toggle::make('dark_mode')
+                        ->label('Enable Dark Mode')
+                        ->live(),
+                ])->columns(2),
 
-                Section::make('Typography')
-                    ->schema([
-                        TextInput::make('font_family')
-                            ->label('Font Family')
-                            ->default('Inter')
-                            ->helperText('Change the main font family of your site'),
-                    ]),
+                Section::make('Typography')->schema([
+                    TextInput::make('font_family')
+                        ->label('Font Family')
+                        ->default('Inter')
+                        ->helperText('Change the main font family of your site'),
+                ]),
             ])
             ->statePath('data');
     }
@@ -133,14 +124,14 @@ class SiteAppearancePage extends Page implements HasForms, HasActions
 
     public function save(): void
     {
+        $data = $this->form->getState();
+
         try {
-            $data = $this->form->getState();
-
             DB::transaction(function () use ($data) {
-                $this->settings->fill($data);
-                $this->settings->save();
+                $settings = app(SiteAppearance::class);
+                $settings->fill($data);
+                $settings->save();
 
-                // Update runtime configuration
                 config([
                     'filament.dark_mode' => $data['dark_mode'] ?? false,
                 ]);
@@ -150,7 +141,7 @@ class SiteAppearancePage extends Page implements HasForms, HasActions
                 ->title('Appearance settings saved successfully')
                 ->success()
                 ->send();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Notification::make()
                 ->title('Failed to save appearance settings')
                 ->body($e->getMessage())
@@ -163,9 +154,12 @@ class SiteAppearancePage extends Page implements HasForms, HasActions
     {
         try {
             DB::transaction(function () {
-                $defaults = (new SiteAppearance())->toArray();
-                $this->settings->fill($defaults);
-                $this->settings->save();
+                $settings = app(SiteAppearance::class);
+                $defaults = $settings->toArray();
+
+                $settings->fill($defaults);
+                $settings->save();
+
                 $this->form->fill($defaults);
             });
 
@@ -173,7 +167,7 @@ class SiteAppearancePage extends Page implements HasForms, HasActions
                 ->title('Appearance settings reset to defaults')
                 ->success()
                 ->send();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Notification::make()
                 ->title('Failed to reset settings')
                 ->body($e->getMessage())

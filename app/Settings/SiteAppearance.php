@@ -6,6 +6,7 @@ use Spatie\LaravelSettings\Settings;
 
 class SiteAppearance extends Settings
 {
+
     public string $primary_color;
     public string $secondary_color;
     public bool $dark_mode;
@@ -32,11 +33,6 @@ class SiteAppearance extends Settings
             'enable_animations' => true,
             'custom_css' => null,
         ];
-    }
-
-    public static function encrypted(): array
-    {
-        return []; // Tidak ada data yang perlu dienkripsi
     }
 
     public function getCssVariables(): array
