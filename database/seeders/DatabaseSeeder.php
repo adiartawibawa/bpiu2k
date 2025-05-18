@@ -6,7 +6,9 @@ use App\Models\Category;
 use App\Models\Menu;
 use App\Models\MenuItem;
 use App\Models\Page;
+use App\Models\Permission;
 use App\Models\Post;
+use App\Models\Role;
 use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -19,47 +21,103 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function () {
+            $this->setupShield();
             $this->seedUsers();
             $this->seedContent();
             $this->seedMenus();
-
-            // Artisan::call('shield:generate --all');
-
-            // // Menjalankan command shield:super-admin
-            // Artisan::call('shield:super-admin', [
-            //     '--user' => 'Admin User',
-            //     '--panel' => 'admin'
-            // ]);
         });
+    }
+
+    protected function setupShield(): void
+    {
+        // Jalankan shield install
+        // Artisan::call('shield:install');
+
+        // Generate permissions
+        // Artisan::call('shield:generate', ['--all' => true]);
+
+        // Tambahkan role
+        $adminRole = Role::firstOrCreate(['name' => 'super_admin']);
+        $adminRole = Role::firstOrCreate(['name' => 'admin']);
+        $userRole = Role::firstOrCreate(['name' => 'user']);
+
+        // Berikan beberapa permission ke role admin
+        $adminPermissions = [
+            'view_user',
+            'create_user',
+            'edit_user',
+            'delete_user',
+            'view_post',
+            'create_post',
+            'edit_post',
+            'delete_post',
+            'view_page',
+            'create_page',
+            'edit_page',
+            'delete_page',
+            'view_category',
+            'create_category',
+            'edit_category',
+            'delete_category',
+            'view_tag',
+            'create_tag',
+            'edit_tag',
+            'delete_tag',
+            'view_menu',
+            'create_menu',
+            'edit_menu',
+            'delete_menu',
+        ];
+
+        foreach ($adminPermissions as $permissionName) {
+            $permission = Permission::firstOrCreate(['name' => $permissionName]);
+            $adminRole->givePermissionTo($permission);
+        }
+
+        // Berikan permission terbatas ke role user
+        $userPermissions = [
+            'view_post',
+            'view_page',
+            'view_category',
+            'view_tag'
+        ];
+
+        foreach ($userPermissions as $permissionName) {
+            $permission = Permission::firstOrCreate(['name' => $permissionName]);
+            $userRole->givePermissionTo($permission);
+        }
     }
 
     protected function seedUsers(): void
     {
+        // Create super admin user
+        $superAdmin = User::firstOrCreate(['email' => 'superadmin@example.com'], [
+            'name'     => 'Super Admin',
+            'password' => Hash::make('password'),
+            'status'   => 'active',
+        ]);
+        $superAdmin->assignRole('super_admin');
+
         // Create admin user
         $admin = User::firstOrCreate(['email' => 'admin@example.com'], [
             'name'     => 'Admin User',
             'password' => Hash::make('password'),
             'status'   => 'active',
         ]);
-        // $admin->roles()->sync([Role::where('name', 'admin')->first()->id]);
+        $admin->assignRole('admin');
 
-        // Create editor user
+        // Create editor user (dengan role admin juga)
         $editor = User::firstOrCreate(['email' => 'editor@example.com'], [
             'name'     => 'Editor User',
             'password' => Hash::make('password'),
             'status'   => 'active',
         ]);
-        // $editor->roles()->sync([Role::where('name', 'editor')->first()->id]);
+        $editor->assignRole('admin');
 
         // Create regular users
-        User::factory(10)->create();
-        // User::factory(10)->create()->each(function ($user) {
-        //     $roles = Role::where('name', '!=', 'admin')
-        //         ->inRandomOrder()
-        //         ->limit(rand(1, 2))
-        //         ->pluck('id');
-        //     $user->roles()->sync($roles);
-        // });
+        User::factory(10)->create()->each(function ($user) {
+            $user->assignRole('user');
+        });
     }
 
     protected function seedContent(): void
