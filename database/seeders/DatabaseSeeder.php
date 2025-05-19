@@ -156,17 +156,17 @@ class DatabaseSeeder extends Seeder
             ['location' => 'header']
         );
 
-        $mainItems = MenuItem::factory(5)
-            ->for($mainMenu)
-            ->create();
+        // $mainItems = MenuItem::factory(5)
+        //     ->for($mainMenu)
+        //     ->create();
 
-        $mainItems->each(function ($item) use ($mainMenu) {
-            if (fake()->boolean(30)) {
-                MenuItem::factory(fake()->numberBetween(1, 3))
-                    ->for($mainMenu)
-                    ->create(['parent_id' => $item->id]);
-            }
-        });
+        // $mainItems->each(function ($item) use ($mainMenu) {
+        //     if (fake()->boolean(30)) {
+        //         MenuItem::factory(fake()->numberBetween(1, 3))
+        //             ->for($mainMenu)
+        //             ->create(['parent_id' => $item->id]);
+        //     }
+        // });
 
         // Footer menu
         $footerMenu = Menu::firstOrCreate(

@@ -21,12 +21,13 @@ return new class extends Migration
         Schema::create('menu_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('menu_id')->constrained()->onDelete('cascade');
-            $table->foreignId('parent_id')->nullable()->constrained('menu_items')->onDelete('cascade');
-            $table->string('title');
+            // $table->integer('parent_id')->default(-1)->index();
+            // $table->integer('order')->default(0);
+            // $table->string('title');
+            $table->treeColumns();
             $table->string('url');
             $table->string('target')->default('_self');
             $table->string('icon')->nullable();
-            $table->integer('order')->default(0);
             $table->string('type')->default('link'); // link, page, post, category, etc.
             $table->string('route')->nullable();
             $table->string('parameters')->nullable();
